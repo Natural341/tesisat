@@ -1,13 +1,19 @@
-@import "tailwindcss";
-@plugin "@tailwindcss/typography";
+/*
+Theme Name: Tesisat Pro
+Theme URI: https://tesisatcim.com
+Author: Gemini
+Author URI: https://tesisatcim.com
+Description: Next.js projesinden port edilmiş modern, Tailwind CSS tabanlı Tesisat teması.
+Version: 1.1
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: tesisat-pro
+Tags: custom-background, custom-logo, custom-menu, featured-images, one-column, two-columns, right-sidebar, grid-layout
+*/
 
-html {
-  scroll-behavior: smooth;
-}
-
-/* --- Custom Scrollbar --- */
+/* --- Custom Scrollbar (Next.js Projesinden) --- */
 ::-webkit-scrollbar {
-  width: 20px; /* Thicker */
+  width: 20px;
 }
 
 ::-webkit-scrollbar-track {
@@ -17,7 +23,7 @@ html {
 
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%); /* Yellow gradient */
-  border: 4px solid #1e3a8a; /* Creates floating effect */
+  border: 4px solid #1e3a8a;
   border-radius: 12px;
 }
 
@@ -43,7 +49,6 @@ html {
   border-top: 1px solid #1e3a8a;
 }
 
-/* Hide the secondary buttons if browser tries to render them */
 ::-webkit-scrollbar-button:vertical:decrement:end,
 ::-webkit-scrollbar-button:vertical:increment:start {
   display: none;
@@ -51,30 +56,4 @@ html {
 
 ::-webkit-scrollbar-button:hover {
   background-color: #0f172a;
-}
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
