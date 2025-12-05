@@ -49,7 +49,7 @@ export default function Services() {
                <div className="h-px flex-grow bg-slate-200"></div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {categoryServices.map((service) => {
                 const isCustomIcon = service.iconName?.startsWith('data:');
                 // Fix: Always assign a valid component type, avoiding 'null' type assignment for the JSX tag
