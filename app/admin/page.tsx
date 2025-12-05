@@ -1,9 +1,11 @@
-// @ts-nocheck
 'use client';
 
 import { useState } from 'react';
 import { Trash2, Plus, Edit, Save, X, LayoutDashboard, LogOut, BookOpen, MapPin, Settings as SettingsIcon, Upload, FileText, LayoutGrid, Home as HomeIcon, List, ChevronRight, ExternalLink } from 'lucide-react';
 import { useData, Service, BlogPost, Location, SiteConfig, CustomPage, MenuItem } from '@/app/context/DataContext';
+
+// Tip Tanımlaması: Düzenlenebilir tüm öğelerin birleşimi
+type EditableItem = Service | BlogPost | Location | CustomPage | MenuItem | SiteConfig;
 
 // Helper to convert plain text to simple HTML
 const convertToHtml = (plainText: string): string => {
@@ -36,7 +38,10 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'services' | 'blog' | 'locations' | 'pages' | 'settings' | 'menu'>('dashboard');
   const [settingsSubTab, setSettingsSubTab] = useState<'general' | 'home'>('general');
   const [isEditing, setIsEditing] = useState(false);
-  const [currentItem, setCurrentItem] = useState<any>(null); 
+  
+  // TİP GÜVENLİ STATE
+  const [currentItem, setCurrentItem] = useState<EditableItem | null>(null); 
+  
   const [plainTextContent, setPlainTextContent] = useState<string>(''); 
   const [plainTextFullContent, setPlainTextFullContent] = useState<string>(''); 
   
@@ -48,7 +53,10 @@ export default function AdminPanel() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setCurrentItem((prev: any) => ({ ...prev, [field]: reader.result as string }));
+        setCurrentItem((prev) => {
+            if (!prev) return null;
+            return { ...prev, [field]: reader.result as string };
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -59,35 +67,42 @@ export default function AdminPanel() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setCurrentItem((prev: any) => ({
-            ...prev, 
-            [section]: { ...prev[section], [field]: reader.result as string }
-        }));
+        setCurrentItem((prev) => {
+            if (!prev) return null;
+            // SiteConfig tipine özgü işlem
+            const config = prev as SiteConfig;
+            return {
+                ...config, 
+                [section]: { ...config[section], [field]: reader.result as string }
+            };
+        });
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleEdit = (item?: any, parentId: string | null = null) => {
+  // TİP GÜVENLİ EDIT HANDLER
+  const handleEdit = (item?: EditableItem, parentId: string | null = null) => {
     setPlainTextContent('');
     setPlainTextFullContent('');
     setParentMenuItemId(parentId);
 
     if (item) {
       setCurrentItem(item);
-      if (activeTab === 'locations' || activeTab === 'blog' || activeTab === 'pages') {
-        setPlainTextContent(convertToPlainText(item.content || ''));
+      // Tip kontrolleri ile içerik doldurma
+      if ('content' in item && item.content) {
+        setPlainTextContent(convertToPlainText(item.content));
       }
-      if (activeTab === 'services') {
-        setPlainTextFullContent(convertToPlainText(item.fullContent || ''));
+      if ('fullContent' in item && item.fullContent) {
+        setPlainTextFullContent(convertToPlainText(item.fullContent));
       }
-      if (activeTab === 'settings') {
-          setPlainTextContent(convertToPlainText(item.about?.content || ''));
+      if ('about' in item && item.about?.content) { // SiteConfig
+          setPlainTextContent(convertToPlainText(item.about.content));
       }
     } else {
-      // New Item Defaults - Note: Added 'slug' or 'id' handling for new items in save
+      // New Item Defaults
       if (activeTab === 'services') {
-        setCurrentItem({ id: '', title: '', category: '', shortDesc: '', iconName: 'Wrench', fullContent: '', tags: [], seoTitle: '', seoDescription: '' });
+        setCurrentItem({ id: '', title: '', category: '', shortDesc: '', iconName: 'Wrench', fullContent: '', tags: [], seoTitle: '', seoDescription: '' } as Service);
       } else if (activeTab === 'blog') {
         setCurrentItem({
           id: '', title: '', excerpt: '', content: '', 
@@ -97,31 +112,43 @@ export default function AdminPanel() {
           category: 'Genel',
           isPopular: false,
           seoTitle: '', seoDescription: ''
-        });
+        } as BlogPost);
       } else if (activeTab === 'locations') {
-         setCurrentItem({ id: '', name: '', slug: '', content: '', excerpt: '', image: '', seoTitle: '', seoDescription: '' });
+         setCurrentItem({ id: '', name: '', slug: '', content: '', excerpt: '', image: '', seoTitle: '', seoDescription: '' } as Location);
       } else if (activeTab === 'pages') {
-         setCurrentItem({ id: '', title: '', slug: '', content: '', excerpt: '', image: '', seoTitle: '', seoDescription: '' });
+         setCurrentItem({ id: '', title: '', slug: '', content: '', excerpt: '', image: '', seoTitle: '', seoDescription: '' } as CustomPage);
       } else if (activeTab === 'menu') {
-         setCurrentItem({ id: '', title: '', url: '#', children: [] });
+         setCurrentItem({ id: '', title: '', url: '#', children: [] } as MenuItem);
       }
     }
     setIsEditing(true);
   };
 
-  const getPublicUrl = (item: any, type: string) => {
-      if (!item || !item.id) return null;
-      const slug = item.slug || item.id; 
+  const getPublicUrl = (item: EditableItem | null, type: string) => {
+      if (!item) return null;
       
-      if (type === 'services') return `/hizmetlerimiz/${slug}`;
-      if (type === 'locations') return `/contact/${slug}`;
-      if (type === 'blog') return `/blog/${slug}`;
-      if (type === 'pages') return `/sayfa/${slug}`;
+      // Ortak özelliklere güvenli erişim için type guard veya 'in' operatörü kullanımı
+      let slug = '';
+      let id = '';
+
+      if ('slug' in item) slug = item.slug;
+      if ('id' in item) id = item.id;
+
+      const finalSlug = slug || id;
+      if (!finalSlug) return null;
+      
+      if (type === 'services') return `/hizmetlerimiz/${finalSlug}`;
+      if (type === 'locations') return `/contact/${finalSlug}`;
+      if (type === 'blog') return `/blog/${finalSlug}`;
+      if (type === 'pages') return `/sayfa/${finalSlug}`;
       return null;
   };
 
   const handleSave = () => {
-    const itemToSave = { ...currentItem };
+    if (!currentItem) return;
+    
+    // Geçici olarak any kullanarak dinamik işlem yapıyoruz, çünkü tipler farklılaşıyor
+    const itemToSave: any = { ...currentItem };
 
     // 1. Convert Text to HTML
     if (activeTab === 'locations' || activeTab === 'blog' || activeTab === 'pages') {
@@ -134,17 +161,17 @@ export default function AdminPanel() {
         itemToSave.about.content = convertToHtml(plainTextContent);
     }
 
-    // 2. Ensure Slug/ID generation if empty (for new items)
+    // 2. Ensure Slug/ID generation
     if (!itemToSave.id && !itemToSave.slug) {
         const sourceText = itemToSave.title || itemToSave.name || '';
         const generatedSlug = sourceText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
         itemToSave.id = generatedSlug;
-        if (activeTab === 'locations' || activeTab === 'pages' || activeTab === 'blog' || activeTab === 'services') { // Apply to all content types
+        if (['locations', 'pages', 'blog', 'services'].includes(activeTab)) {
             itemToSave.slug = generatedSlug;
         }
     } else if (itemToSave.slug && !itemToSave.id) {
         itemToSave.id = itemToSave.slug;
-    } else if (!itemToSave.slug && itemToSave.id) { // If ID is set but slug is not (e.g. services default)
+    } else if (!itemToSave.slug && itemToSave.id) {
         itemToSave.slug = itemToSave.id;
     }
 
@@ -152,7 +179,6 @@ export default function AdminPanel() {
     if (activeTab === 'services') {
       const service = itemToSave as Service;
       const isUpdate = services.some(s => s.id === service.id);
-      
       if (isUpdate) updateService(service);
       else addService(service);
 
@@ -244,6 +270,18 @@ export default function AdminPanel() {
   };
 
   const publicUrl = getPublicUrl(currentItem, activeTab);
+
+  // TİP GÜVENLİ LİSTE SEÇİMİ
+  // Listelenecek verileri belirlerken tip dönüşümü yapıyoruz
+  const renderList = () => {
+      if (activeTab === 'services') return services;
+      if (activeTab === 'blog') return blogPosts;
+      if (activeTab === 'pages') return customPages;
+      if (activeTab === 'locations') return locations;
+      return [];
+  };
+
+  const currentList = renderList();
 
   return (
     <div className="min-h-screen bg-slate-100 flex font-sans text-slate-900">
@@ -357,40 +395,41 @@ export default function AdminPanel() {
               <div className="p-8 lg:p-12 max-w-5xl">
                   {settingsSubTab === 'general' && (
                     <div className="space-y-8 animate-in fade-in">
+                        {/* SiteConfig tipi olarak işlem görüyor */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Marka Adı</label>
-                                <input type="text" value={currentItem.brandName} onChange={(e) => setCurrentItem({...currentItem, brandName: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                                <input type="text" value={(currentItem as SiteConfig).brandName} onChange={(e) => setCurrentItem({...currentItem, brandName: e.target.value} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Marka Soneki</label>
-                                <input type="text" value={currentItem.brandSuffix} onChange={(e) => setCurrentItem({...currentItem, brandSuffix: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                                <input type="text" value={(currentItem as SiteConfig).brandSuffix} onChange={(e) => setCurrentItem({...currentItem, brandSuffix: e.target.value} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
                             </div>
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">Footer Metni</label>
-                            <textarea rows={3} value={currentItem.footerText} onChange={(e) => setCurrentItem({...currentItem, footerText: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                            <textarea rows={3} value={(currentItem as SiteConfig).footerText} onChange={(e) => setCurrentItem({...currentItem, footerText: e.target.value} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">Adres</label>
-                            <input type="text" value={currentItem.address} onChange={(e) => setCurrentItem({...currentItem, address: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                            <input type="text" value={(currentItem as SiteConfig).address} onChange={(e) => setCurrentItem({...currentItem, address: e.target.value} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Telefon</label>
-                                <input type="text" value={currentItem.phone} onChange={(e) => setCurrentItem({...currentItem, phone: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                                <input type="text" value={(currentItem as SiteConfig).phone} onChange={(e) => setCurrentItem({...currentItem, phone: e.target.value} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">E-mail</label>
-                                <input type="email" value={currentItem.email} onChange={(e) => setCurrentItem({...currentItem, email: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                                <input type="email" value={(currentItem as SiteConfig).email} onChange={(e) => setCurrentItem({...currentItem, email: e.target.value} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
                             </div>
                         </div>
                         <div className="pt-8 border-t border-slate-100">
                             <h4 className="font-bold text-slate-900 text-lg mb-6 flex items-center gap-2"><Upload className="w-5 h-5"/> Sosyal Medya</h4>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <input type="text" placeholder="Facebook URL" value={currentItem.social.facebook} onChange={(e) => setCurrentItem({...currentItem, social: { ...currentItem.social, facebook: e.target.value }})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
-                                <input type="text" placeholder="Instagram URL" value={currentItem.social.instagram} onChange={(e) => setCurrentItem({...currentItem, social: { ...currentItem.social, instagram: e.target.value }})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
-                                <input type="text" placeholder="Twitter URL" value={currentItem.social.twitter} onChange={(e) => setCurrentItem({...currentItem, social: { ...currentItem.social, twitter: e.target.value }})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                                <input type="text" placeholder="Facebook URL" value={(currentItem as SiteConfig).social.facebook} onChange={(e) => setCurrentItem({...currentItem, social: { ...(currentItem as SiteConfig).social, facebook: e.target.value }} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                                <input type="text" placeholder="Instagram URL" value={(currentItem as SiteConfig).social.instagram} onChange={(e) => setCurrentItem({...currentItem, social: { ...(currentItem as SiteConfig).social, instagram: e.target.value }} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                                <input type="text" placeholder="Twitter URL" value={(currentItem as SiteConfig).social.twitter} onChange={(e) => setCurrentItem({...currentItem, social: { ...(currentItem as SiteConfig).social, twitter: e.target.value }} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
                             </div>
                         </div>
                     </div>
@@ -402,7 +441,7 @@ export default function AdminPanel() {
                         <h3 className="text-xl font-black text-slate-800 border-b pb-4">Hakkımızda Alanı Düzenle</h3>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">Başlık</label>
-                            <input type="text" value={currentItem.about.title} onChange={(e) => setCurrentItem({...currentItem, about: { ...currentItem.about, title: e.target.value }})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
+                            <input type="text" value={(currentItem as SiteConfig).about.title} onChange={(e) => setCurrentItem({...currentItem, about: { ...(currentItem as SiteConfig).about, title: e.target.value }} as SiteConfig)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium" />
                         </div>
                         
                         <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl">
@@ -411,14 +450,14 @@ export default function AdminPanel() {
                             </label>
                             <div className="flex items-start gap-6">
                                 <input type="file" accept="image/*" onChange={(e) => handleSettingsFileChange(e, 'about', 'image')} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"/>
-                                {currentItem.about.image && <img src={currentItem.about.image} className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white" alt="Preview" />}
+                                {(currentItem as SiteConfig).about.image && <img src={(currentItem as SiteConfig).about.image} className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white" alt="Preview" />}
                             </div>
                         </div>
 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">İçerik Metni</label>
                             <p className="text-xs text-slate-500 mb-2">Paragraflar arası boşluk bırakarak yazın.</p>
-                            <textarea rows={10} value={plainTextContent} onChange={(e) => setPlainTextContent(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm text-slate-600" />
+                            <textarea rows={10} value={plainTextContent} onChange={(e) => setPlainTextContent(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium text-slate-600" />
                         </div>
                     </div>
                   )}
@@ -435,7 +474,7 @@ export default function AdminPanel() {
         {/* MENU MANAGEMENT VIEW */}
         {activeTab === 'menu' && (
             <div className="space-y-6">
-                {siteConfig.menu?.map((item: any) => (
+                {siteConfig.menu?.map((item: MenuItem) => (
                     <div key={item.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 transition-all hover:border-blue-300">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
@@ -448,7 +487,7 @@ export default function AdminPanel() {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => handleEdit(null, item.id)} className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors flex items-center gap-1">
+                                <button onClick={() => handleEdit(undefined, item.id)} className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors flex items-center gap-1">
                                     <Plus className="w-3 h-3" /> Alt Menü
                                 </button>
                                 <button onClick={() => handleEdit(item)} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
@@ -463,7 +502,7 @@ export default function AdminPanel() {
                         {/* Sub Items */}
                         {item.children && item.children.length > 0 && (
                             <div className="ml-10 space-y-2 border-l-2 border-slate-100 pl-4">
-                                {item.children.map((subItem: any) => (
+                                {item.children.map((subItem: MenuItem) => (
                                     <div key={subItem.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-lg">
                                         <div className="flex items-center gap-2">
                                             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -490,39 +529,48 @@ export default function AdminPanel() {
         {/* LIST VIEW (Other Tabs) */}
         {activeTab !== 'settings' && activeTab !== 'dashboard' && activeTab !== 'menu' && (
             <div className="grid grid-cols-1 gap-4">
-            {((activeTab === 'services' ? services : activeTab === 'blog' ? blogPosts : activeTab === 'pages' ? customPages : locations) as any[]).map((item: any) => (
+            {currentList.map((item: Service | BlogPost | Location | CustomPage) => {
+                // Her tipte ortak olan veya kontrol edilerek erişilen özellikler
+                const title = 'title' in item ? item.title : 'name' in item ? item.name : '';
+                const description = 'shortDesc' in item ? item.shortDesc : 'excerpt' in item ? item.excerpt : '';
+                const iconName = 'iconName' in item ? item.iconName : null;
+                const image = 'image' in item ? item.image : null;
+                const category = 'category' in item ? item.category : null;
+                const isPopular = 'isPopular' in item ? item.isPopular : false;
+
+                return (
                 <div key={item.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between group hover:shadow-lg transition-all hover:border-blue-200 cursor-pointer">
                 <div className="flex items-center gap-6">
                     {/* Thumbnails */}
                     {(activeTab === 'blog' || activeTab === 'locations' || activeTab === 'pages') && (
-                      item.image ? (
-                        <img src={item.image} alt="t" className="w-20 h-20 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform" />
+                      image ? (
+                        <img src={image} alt="t" className="w-20 h-20 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform" />
                       ) : (
                         <div className="w-20 h-20 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-xs font-bold">NO IMG</div>
                       )
                     )}
                     
                     {activeTab === 'services' && (
-                        item.iconName?.startsWith('data:') ? (
-                            <img src={item.iconName} className="w-16 h-16 object-contain drop-shadow-md" alt="icon" />
+                        iconName?.startsWith('data:') ? (
+                            <img src={iconName} className="w-16 h-16 object-contain drop-shadow-md" alt="icon" />
                         ) : (
                             <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center text-blue-900 font-bold text-2xl shadow-inner">
-                                {item.title?.charAt(0)}
+                                {title?.charAt(0)}
                             </div>
                         )
                     )}
                     
                     <div>
-                    <h3 className="font-bold text-slate-800 text-lg mb-1 group-hover:text-blue-700 transition-colors">{item.title || item.name}</h3>
+                    <h3 className="font-bold text-slate-800 text-lg mb-1 group-hover:text-blue-700 transition-colors">{title}</h3>
                     <p className="text-slate-500 text-sm line-clamp-1 font-medium max-w-md">
-                        {activeTab === 'services' ? item.shortDesc : item.excerpt}
+                        {description}
                     </p>
-                    {activeTab === 'services' && item.category && (
+                    {activeTab === 'services' && category && (
                         <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-[10px] px-2 py-1 rounded-full mt-2 font-bold uppercase tracking-wide border border-blue-200">
-                            {item.category}
+                            {category}
                         </span>
                     )}
-                    {activeTab === 'blog' && item.isPopular && (
+                    {activeTab === 'blog' && isPopular && (
                         <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-[10px] px-2 py-1 rounded-full mt-2 font-bold uppercase tracking-wide border border-yellow-200">
                             ★ Popüler
                         </span>
@@ -538,7 +586,8 @@ export default function AdminPanel() {
                     </button>
                 </div>
                 </div>
-            ))}
+            )
+            )}
             </div>
         )}
       </main>
@@ -579,8 +628,8 @@ export default function AdminPanel() {
                         <label className="block text-sm font-bold text-slate-700 mb-2">Menü Başlığı</label>
                         <input 
                         type="text" 
-                        value={currentItem.title} 
-                        onChange={(e) => setCurrentItem({...currentItem, title: e.target.value})}
+                        value={(currentItem as MenuItem).title} 
+                        onChange={(e) => setCurrentItem({...currentItem, title: e.target.value} as MenuItem)}
                         className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"
                         placeholder="Örn: Hakkımızda"
                         />
@@ -590,27 +639,27 @@ export default function AdminPanel() {
                         <label className="block text-sm font-bold text-slate-700 mb-3">Link Türü & URL</label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <button 
-                                onClick={() => setCurrentItem({...currentItem, url: '#'})}
-                                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase border-2 transition-colors ${currentItem.url === '#' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                                onClick={() => setCurrentItem({...currentItem, url: '#'} as MenuItem)}
+                                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase border-2 transition-colors ${(currentItem as MenuItem).url === '#' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}
                             >
                                 Açılır Menü Başlığı (Link Yok)
                             </button>
                             <button 
-                                onClick={() => setCurrentItem({...currentItem, url: '/'})}
-                                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase border-2 transition-colors ${currentItem.url !== '#' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                                onClick={() => setCurrentItem({...currentItem, url: '/'} as MenuItem)}
+                                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase border-2 transition-colors ${(currentItem as MenuItem).url !== '#' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}
                             >
                                 Sayfa Linki
                             </button>
                         </div>
 
-                        {currentItem.url !== '#' && (
+                        {(currentItem as MenuItem).url !== '#' && (
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 mb-1">Manuel URL</label>
                                     <input 
                                         type="text" 
-                                        value={currentItem.url} 
-                                        onChange={(e) => setCurrentItem({...currentItem, url: e.target.value})}
+                                        value={(currentItem as MenuItem).url} 
+                                        onChange={(e) => setCurrentItem({...currentItem, url: e.target.value} as MenuItem)}
                                         className="w-full border-2 border-slate-200 rounded-xl px-4 py-2 focus:border-blue-600 outline-none font-mono text-sm"
                                     />
                                 </div>
@@ -619,7 +668,7 @@ export default function AdminPanel() {
                                     <label className="block text-xs font-bold text-slate-400 mb-2">Veya Hazır Sayfa Seç:</label>
                                     <select 
                                         onChange={(e) => {
-                                            if(e.target.value) setCurrentItem({...currentItem, url: e.target.value, title: e.target.options[e.target.selectedIndex].text.split(' (')[0]})
+                                            if(e.target.value) setCurrentItem({...currentItem, url: e.target.value, title: e.target.options[e.target.selectedIndex].text.split(' (')[0]} as MenuItem)
                                         }}
                                         className="w-full border-2 border-slate-200 rounded-xl px-4 py-2 focus:border-blue-600 outline-none font-medium"
                                     >
@@ -645,15 +694,15 @@ export default function AdminPanel() {
                   </>
               )}
 
-              {/* ----------------LOCATIONS FORM ---------------- */}
+              {/* ---------------- LOCATIONS FORM ---------------- */}
               {activeTab === 'locations' && (
                   <>
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Konum Adı</label>
                         <input 
                         type="text" 
-                        value={currentItem.name} 
-                        onChange={(e) => setCurrentItem({...currentItem, name: e.target.value})}
+                        value={(currentItem as Location).name} 
+                        onChange={(e) => setCurrentItem({...currentItem, name: e.target.value} as Location)}
                         className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"
                         placeholder="Örn: Çamlıca Su Tesisatçısı"
                         />
@@ -665,8 +714,8 @@ export default function AdminPanel() {
                             <span className="text-slate-400 mr-1 text-sm font-mono">/contact/</span>
                             <input 
                                 type="text" 
-                                value={currentItem.slug || ''} 
-                                onChange={(e) => setCurrentItem({...currentItem, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')})}
+                                value={(currentItem as Location).slug || ''} 
+                                onChange={(e) => setCurrentItem({...currentItem, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')} as Location)}
                                 className="bg-transparent focus:outline-none font-mono text-sm w-full text-blue-700"
                                 placeholder="camlica-su-tesisat"
                             />
@@ -679,12 +728,12 @@ export default function AdminPanel() {
                             <Upload className="w-4 h-4" /> Kapak Görseli
                         </label>
                         <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'image')} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"/>
-                        {currentItem.image && <img src={currentItem.image} className="mt-4 h-40 w-full object-cover rounded-xl shadow-md" alt="Preview" />}
+                        {(currentItem as Location).image && <img src={(currentItem as Location).image} className="mt-4 h-40 w-full object-cover rounded-xl shadow-md" alt="Preview" />}
                     </div>
 
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Kısa Özet</label>
-                        <textarea rows={2} value={currentItem.excerpt} onChange={(e) => setCurrentItem({...currentItem, excerpt: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" />
+                        <textarea rows={2} value={(currentItem as Location).excerpt} onChange={(e) => setCurrentItem({...currentItem, excerpt: e.target.value} as Location)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" />
                     </div>
                     
                     <div>
@@ -697,11 +746,11 @@ export default function AdminPanel() {
                         <h4 className="text-lg font-bold text-slate-800">SEO Ayarları</h4>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">SEO Başlığı (Meta Title)</label>
-                            <input type="text" value={currentItem.seoTitle || ''} onChange={(e) => setCurrentItem({...currentItem, seoTitle: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru başlığı" />
+                            <input type="text" value={(currentItem as Location).seoTitle || ''} onChange={(e) => setCurrentItem({...currentItem, seoTitle: e.target.value} as Location)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru başlığı" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">SEO Açıklaması (Meta Description)</label>
-                            <textarea rows={3} value={currentItem.seoDescription || ''} onChange={(e) => setCurrentItem({...currentItem, seoDescription: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru açıklaması" />
+                            <textarea rows={3} value={(currentItem as Location).seoDescription || ''} onChange={(e) => setCurrentItem({...currentItem, seoDescription: e.target.value} as Location)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru açıklaması" />
                         </div>
                     </div>
                   </>
@@ -714,8 +763,8 @@ export default function AdminPanel() {
                         <label className="block text-sm font-bold text-slate-700 mb-2">Sayfa Başlığı</label>
                         <input 
                         type="text" 
-                        value={currentItem.title} 
-                        onChange={(e) => setCurrentItem({...currentItem, title: e.target.value})}
+                        value={(currentItem as CustomPage).title} 
+                        onChange={(e) => setCurrentItem({...currentItem, title: e.target.value} as CustomPage)}
                         className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"
                         />
                     </div>
@@ -726,8 +775,8 @@ export default function AdminPanel() {
                             <span className="text-slate-400 mr-1 text-sm font-mono">/sayfa/</span>
                             <input 
                                 type="text" 
-                                value={currentItem.slug || ''} 
-                                onChange={(e) => setCurrentItem({...currentItem, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')})}
+                                value={(currentItem as CustomPage).slug || ''} 
+                                onChange={(e) => setCurrentItem({...currentItem, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')} as CustomPage)}
                                 className="bg-transparent focus:outline-none font-mono text-sm w-full text-blue-700"
                                 placeholder="ornek-sayfa"
                             />
@@ -740,12 +789,12 @@ export default function AdminPanel() {
                             <Upload className="w-4 h-4" /> Kapak Görseli
                         </label>
                         <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'image')} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"/>
-                        {currentItem.image && <img src={currentItem.image} className="mt-4 h-40 w-full object-cover rounded-xl shadow-md" alt="Preview" />}
+                        {(currentItem as CustomPage).image && <img src={(currentItem as CustomPage).image} className="mt-4 h-40 w-full object-cover rounded-xl shadow-md" alt="Preview" />}
                     </div>
 
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Kısa Özet</label>
-                        <textarea rows={2} value={currentItem.excerpt} onChange={(e) => setCurrentItem({...currentItem, excerpt: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" />
+                        <textarea rows={2} value={(currentItem as CustomPage).excerpt} onChange={(e) => setCurrentItem({...currentItem, excerpt: e.target.value} as CustomPage)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" />
                     </div>
                     
                     <div>
@@ -757,11 +806,11 @@ export default function AdminPanel() {
                         <h4 className="text-lg font-bold text-slate-800">SEO Ayarları</h4>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">SEO Başlığı (Meta Title)</label>
-                            <input type="text" value={currentItem.seoTitle || ''} onChange={(e) => setCurrentItem({...currentItem, seoTitle: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru başlığı" />
+                            <input type="text" value={(currentItem as CustomPage).seoTitle || ''} onChange={(e) => setCurrentItem({...currentItem, seoTitle: e.target.value} as CustomPage)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru başlığı" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">SEO Açıklaması (Meta Description)</label>
-                            <textarea rows={3} value={currentItem.seoDescription || ''} onChange={(e) => setCurrentItem({...currentItem, seoDescription: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru açıklaması" />
+                            <textarea rows={3} value={(currentItem as CustomPage).seoDescription || ''} onChange={(e) => setCurrentItem({...currentItem, seoDescription: e.target.value} as CustomPage)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru açıklaması" />
                         </div>
                     </div>
                   </>
@@ -773,14 +822,14 @@ export default function AdminPanel() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Hizmet Başlığı</label>
-                        <input type="text" value={currentItem.title} onChange={(e) => setCurrentItem({...currentItem, title: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"/>
+                        <input type="text" value={(currentItem as Service).title} onChange={(e) => setCurrentItem({...currentItem, title: e.target.value} as Service)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"/>
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Kategori</label>
                         <input 
                             type="text" 
-                            value={currentItem.category || ''} 
-                            onChange={(e) => setCurrentItem({...currentItem, category: e.target.value})} 
+                            value={(currentItem as Service).category || ''} 
+                            onChange={(e) => setCurrentItem({...currentItem, category: e.target.value} as Service)} 
                             className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"
                             placeholder="Örn: Tıkanıklık Açma"
                             list="category-list"
@@ -801,9 +850,8 @@ export default function AdminPanel() {
                             <span className="text-slate-400 mr-1 text-sm font-mono">/hizmetlerimiz/</span>
                             <input 
                                 type="text" 
-                                value={currentItem.id || ''} 
-                                // Assuming ID acts as slug for services, though simpler
-                                onChange={(e) => setCurrentItem({...currentItem, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')})}
+                                value={(currentItem as Service).id || ''} 
+                                onChange={(e) => setCurrentItem({...currentItem, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')} as Service)}
                                 className="bg-transparent focus:outline-none font-mono text-sm w-full text-blue-700"
                                 placeholder="tuvalet-tikanikligi"
                             />
@@ -824,8 +872,8 @@ export default function AdminPanel() {
                          <div className="border-t border-slate-100 pt-4 w-full">
                             <label className="block text-xs font-bold text-slate-400 mb-2">Veya Hazır İkon Seçin:</label>
                             <select 
-                                value={currentItem.iconName?.startsWith('data:') ? '' : currentItem.iconName}
-                                onChange={(e) => setCurrentItem({...currentItem, iconName: e.target.value})}
+                                value={(currentItem as Service).iconName?.startsWith('data:') ? '' : (currentItem as Service).iconName}
+                                onChange={(e) => setCurrentItem({...currentItem, iconName: e.target.value} as Service)}
                                 className="w-full border-2 border-slate-200 rounded-xl px-4 py-2 focus:border-blue-600 outline-none font-medium"
                             >
                                 <option value="">-- Özel İkon Yüklü --</option>
@@ -835,12 +883,12 @@ export default function AdminPanel() {
                             </select>
                          </div>
                      </div>
-                     {currentItem.iconName?.startsWith('data:') && <img src={currentItem.iconName} className="mt-4 w-16 h-16 object-contain bg-slate-100 rounded-xl p-3 border border-slate-200" alt="Icon Preview" />}
+                     {(currentItem as Service).iconName?.startsWith('data:') && <img src={(currentItem as Service).iconName} className="mt-4 w-16 h-16 object-contain bg-slate-100 rounded-xl p-3 border border-slate-200" alt="Icon Preview" />}
                   </div>
 
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Kısa Açıklama</label>
-                    <textarea rows={2} value={currentItem.shortDesc} onChange={(e) => setCurrentItem({...currentItem, shortDesc: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" />
+                    <textarea rows={2} value={(currentItem as Service).shortDesc} onChange={(e) => setCurrentItem({...currentItem, shortDesc: e.target.value} as Service)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Detaylı İçerik</label>
@@ -851,11 +899,11 @@ export default function AdminPanel() {
                         <h4 className="text-lg font-bold text-slate-800">SEO Ayarları</h4>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">SEO Başlığı (Meta Title)</label>
-                            <input type="text" value={currentItem.seoTitle || ''} onChange={(e) => setCurrentItem({...currentItem, seoTitle: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru başlığı" />
+                            <input type="text" value={(currentItem as Service).seoTitle || ''} onChange={(e) => setCurrentItem({...currentItem, seoTitle: e.target.value} as Service)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru başlığı" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">SEO Açıklaması (Meta Description)</label>
-                            <textarea rows={3} value={currentItem.seoDescription || ''} onChange={(e) => setCurrentItem({...currentItem, seoDescription: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru açıklaması" />
+                            <textarea rows={3} value={(currentItem as Service).seoDescription || ''} onChange={(e) => setCurrentItem({...currentItem, seoDescription: e.target.value} as Service)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru açıklaması" />
                         </div>
                     </div>
                 </>
@@ -866,7 +914,7 @@ export default function AdminPanel() {
                 <>
                    <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Yazı Başlığı</label>
-                    <input type="text" value={currentItem.title} onChange={(e) => setCurrentItem({...currentItem, title: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"/>
+                    <input type="text" value={(currentItem as BlogPost).title} onChange={(e) => setCurrentItem({...currentItem, title: e.target.value} as BlogPost)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"/>
                    </div>
 
                    <div>
@@ -875,9 +923,8 @@ export default function AdminPanel() {
                             <span className="text-slate-400 mr-1 text-sm font-mono">/blog/</span>
                             <input 
                                 type="text" 
-                                value={currentItem.id || ''} 
-                                // Using ID as slug for blog here
-                                onChange={(e) => setCurrentItem({...currentItem, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')})}
+                                value={(currentItem as BlogPost).id || ''} 
+                                onChange={(e) => setCurrentItem({...currentItem, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')} as BlogPost)}
                                 className="bg-transparent focus:outline-none font-mono text-sm w-full text-blue-700"
                                 placeholder="yazi-basligi"
                             />
@@ -890,28 +937,28 @@ export default function AdminPanel() {
                             <Upload className="w-4 h-4" /> Kapak Görseli
                         </label>
                         <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'image')} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"/>
-                        {currentItem.image && <img src={currentItem.image} className="mt-4 h-40 w-full object-cover rounded-xl shadow-md" alt="Preview" />}
+                        {(currentItem as BlogPost).image && <img src={(currentItem as BlogPost).image} className="mt-4 h-40 w-full object-cover rounded-xl shadow-md" alt="Preview" />}
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Kategori</label>
-                        <input type="text" value={currentItem.category} onChange={(e) => setCurrentItem({...currentItem, category: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"/>
+                        <input type="text" value={(currentItem as BlogPost).category} onChange={(e) => setCurrentItem({...currentItem, category: e.target.value} as BlogPost)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"/>
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Tarih</label>
-                        <input type="date" value={currentItem.date} onChange={(e) => setCurrentItem({...currentItem, date: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"/>
+                        <input type="date" value={(currentItem as BlogPost).date} onChange={(e) => setCurrentItem({...currentItem, date: e.target.value} as BlogPost)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm"/>
                       </div>
                    </div>
 
                    <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                      <input type="checkbox" id="isPopular" checked={currentItem.isPopular || false} onChange={(e) => setCurrentItem({...currentItem, isPopular: e.target.checked})} className="w-5 h-5 text-blue-900 rounded focus:ring-blue-500" />
+                      <input type="checkbox" id="isPopular" checked={(currentItem as BlogPost).isPopular || false} onChange={(e) => setCurrentItem({...currentItem, isPopular: e.target.checked} as BlogPost)} className="w-5 h-5 text-blue-900 rounded focus:ring-blue-500" />
                       <label htmlFor="isPopular" className="text-sm font-bold text-slate-800 cursor-pointer">Bu yazıyı 'Popüler Bloglar' alanında göster</label>
                    </div>
 
                    <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Özet</label>
-                    <textarea rows={2} value={currentItem.excerpt} onChange={(e) => setCurrentItem({...currentItem, excerpt: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" />
+                    <textarea rows={2} value={(currentItem as BlogPost).excerpt} onChange={(e) => setCurrentItem({...currentItem, excerpt: e.target.value} as BlogPost)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" />
                   </div>
                   
                   <div>
@@ -923,11 +970,11 @@ export default function AdminPanel() {
                         <h4 className="text-lg font-bold text-slate-800">SEO Ayarları</h4>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">SEO Başlığı (Meta Title)</label>
-                            <input type="text" value={currentItem.seoTitle || ''} onChange={(e) => setCurrentItem({...currentItem, seoTitle: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru başlığı" />
+                            <input type="text" value={(currentItem as BlogPost).seoTitle || ''} onChange={(e) => setCurrentItem({...currentItem, seoTitle: e.target.value} as BlogPost)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru başlığı" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">SEO Açıklaması (Meta Description)</label>
-                            <textarea rows={3} value={currentItem.seoDescription || ''} onChange={(e) => setCurrentItem({...currentItem, seoDescription: e.target.value})} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru açıklaması" />
+                            <textarea rows={3} value={(currentItem as BlogPost).seoDescription || ''} onChange={(e) => setCurrentItem({...currentItem, seoDescription: e.target.value} as BlogPost)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm" placeholder="Arama motoru açıklaması" />
                         </div>
                     </div>
                 </>
