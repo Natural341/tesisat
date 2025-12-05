@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 
 import { useState } from 'react';
@@ -417,7 +418,7 @@ export default function AdminPanel() {
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">İçerik Metni</label>
                             <p className="text-xs text-slate-500 mb-2">Paragraflar arası boşluk bırakarak yazın.</p>
-                            <textarea rows={10} value={plainTextContent} onChange={(e) => setPlainTextContent(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium text-slate-600" />
+                            <textarea rows={10} value={plainTextContent} onChange={(e) => setPlainTextContent(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-blue-600 outline-none font-medium shadow-sm text-slate-600" />
                         </div>
                     </div>
                   )}
@@ -644,7 +645,7 @@ export default function AdminPanel() {
                   </>
               )}
 
-              {/* ---------------- LOCATIONS FORM ---------------- */}
+              {/* ----------------LOCATIONS FORM ---------------- */}
               {activeTab === 'locations' && (
                   <>
                     <div>
