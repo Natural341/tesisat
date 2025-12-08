@@ -56,42 +56,15 @@ add_action( 'elementor/editor/before_enqueue_scripts', 'tesisat_pro_scripts' );
 // --- ELEMENTOR WIDGETLARI ---
 // Elementor widgetlarını güvenli bir şekilde kaydet
 add_action( 'elementor/widgets/register', function( $widgets_manager ) {
-	require_once( __DIR__ . '/elementor-widgets.php' );
-    
-    $widgets_manager->register( new \Tesisat_Hero_Widget() );
-    $widgets_manager->register( new \Tesisat_About_Widget() );
-    $widgets_manager->register( new \Tesisat_Services_Widget() );
+	if ( file_exists( __DIR__ . '/elementor-widgets.php' ) ) {
+        require_once( __DIR__ . '/elementor-widgets.php' );
+        $widgets_manager->register( new \Tesisat_Hero_Widget() );
+        $widgets_manager->register( new \Tesisat_About_Widget() );
+        $widgets_manager->register( new \Tesisat_Services_Widget() );
+    }
 } );
 
-// --- KISA KODLAR (SHORTCODES) ---
-
-// 1. Bölgeler Listesi Kısakodu (Hala gerekli olabilir)
-// Kullanım: [tesisat_locations]
-function tesisat_locations_shortcode() {
-    ob_start(); ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <?php
-        $loc_query = new WP_Query(array('post_type' => 'location', 'posts_per_page' => -1));
-        if ($loc_query->have_posts()) :
-            while ($loc_query->have_posts()) : $loc_query->the_post(); ?>
-            <a href="<?php the_permalink(); ?>" class="block bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:border-yellow-400 hover:shadow-md transition-all group">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="bg-blue-50 p-2 rounded-lg text-blue-900 group-hover:bg-yellow-400 transition-colors">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </div>
-                    <h4 class="font-bold text-blue-900 text-lg"><?php the_title(); ?></h4>
-                </div>
-                <p class="text-sm text-slate-500 line-clamp-2"><?php echo get_the_excerpt(); ?></p>
-            </a>
-        <?php endwhile; wp_reset_postdata();
-        else : ?>
-            <div class="col-span-full text-center text-gray-500">Henüz bölge eklenmedi.</div>
-        <?php endif; ?>
-    </div>
-    <?php return ob_get_clean();
-}
-add_shortcode('tesisat_locations', 'tesisat_locations_shortcode');
-// Hizmetler (Custom Post Type) Oluşturma
+// --- HİZMETLER CPT ---
 function create_service_cpt() {
     register_post_type('service',
         array(
@@ -104,12 +77,15 @@ function create_service_cpt() {
             'menu_icon' => 'dashicons-hammer',
             'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'custom-fields'),
             'show_in_rest' => true,
+            'show_in_graphql' => true,
+            'graphql_single_name' => 'Service',
+            'graphql_plural_name' => 'Services',
         )
     );
 }
 add_action('init', 'create_service_cpt');
 
-// Hizmetler için Kategori (Taxonomy)
+// Hizmetler Kategorisi
 function create_service_taxonomy() {
     register_taxonomy(
         'service_category',
@@ -119,12 +95,15 @@ function create_service_taxonomy() {
             'rewrite' => array('slug' => 'hizmet-kategori'),
             'hierarchical' => true,
             'show_in_rest' => true,
+            'show_in_graphql' => true,
+            'graphql_single_name' => 'ServiceCategory',
+            'graphql_plural_name' => 'ServiceCategories',
         )
     );
 }
 add_action('init', 'create_service_taxonomy');
 
-// Bölgeler (Locations Custom Post Type) Oluşturma - YENİ
+// --- BÖLGELER CPT ---
 function create_location_cpt() {
     register_post_type('location',
         array(
@@ -132,40 +111,74 @@ function create_location_cpt() {
                 'name' => __('Bölgeler'),
                 'singular_name' => __('Bölge')
             ),
-            'public' => true, // Sayfa olarak erişilebilir (Indexlenir)
+            'public' => true,
             'has_archive' => true,
-            'rewrite' => array('slug' => 'bolge'), // URL yapısı: site.com/bolge/camlica
+            'rewrite' => array('slug' => 'bolge'),
             'menu_icon' => 'dashicons-location',
             'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'custom-fields'),
             'show_in_rest' => true,
+            'show_in_graphql' => true,
+            'graphql_single_name' => 'Location',
+            'graphql_plural_name' => 'Locations',
         )
     );
 }
 add_action('init', 'create_location_cpt');
 
-// 4. Bölgeler Listesi Kısakodu - YENİ
-// Kullanım: [tesisat_locations]
-function tesisat_locations_shortcode() {
-    ob_start(); ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <?php
-        $loc_query = new WP_Query(array('post_type' => 'location', 'posts_per_page' => -1));
-        if ($loc_query->have_posts()) :
-            while ($loc_query->have_posts()) : $loc_query->the_post(); ?>
-            <a href="<?php the_permalink(); ?>" class="block bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:border-yellow-400 hover:shadow-md transition-all group">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="bg-blue-50 p-2 rounded-lg text-blue-900 group-hover:bg-yellow-400 transition-colors">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </div>
-                    <h4 class="font-bold text-blue-900 text-lg"><?php the_title(); ?></h4>
-                </div>
-                <p class="text-sm text-slate-500 line-clamp-2"><?php echo get_the_excerpt(); ?></p>
-            </a>
-        <?php endwhile; wp_reset_postdata();
-        else : ?>
-            <div class="col-span-full text-center text-gray-500">Henüz bölge eklenmedi.</div>
-        <?php endif; ?>
-    </div>
-    <?php return ob_get_clean();
+// --- İLETİŞİM AYARLARI (CUSTOMIZER & GRAPHQL) ---
+
+// 1. Özelleştiriciye (Customizer) Ayarları Ekle
+function tesisat_customize_register($wp_customize) {
+    // Panel Bölümü
+    $wp_customize->add_section('tesisat_contact_section', array(
+        'title'    => __('İletişim Bilgileri', 'tesisat-pro'),
+        'priority' => 30,
+    ));
+
+    // Ayarlar Dizisi
+    $settings = array(
+        'tesisat_phone' => array('label' => 'Telefon Numarası', 'default' => '+90 555 123 45 67'),
+        'tesisat_email' => array('label' => 'E-posta Adresi', 'default' => 'info@tesisat.com'),
+        'tesisat_address' => array('label' => 'Adres', 'default' => 'Eskişehir, Türkiye'),
+        'tesisat_facebook' => array('label' => 'Facebook URL', 'default' => '#'),
+        'tesisat_instagram' => array('label' => 'Instagram URL', 'default' => '#'),
+        'tesisat_twitter' => array('label' => 'Twitter URL', 'default' => '#'),
+    );
+
+    foreach ($settings as $id => $data) {
+        $wp_customize->add_setting($id, array(
+            'default'   => $data['default'],
+            'transport' => 'refresh',
+        ));
+        
+        $wp_customize->add_control($id, array(
+            'label'    => $data['label'],
+            'section'  => 'tesisat_contact_section',
+            'settings' => $id,
+            'type'     => 'text',
+        ));
+    }
 }
-add_shortcode('tesisat_locations', 'tesisat_locations_shortcode');
+add_action('customize_register', 'tesisat_customize_register');
+
+// 2. Bu Ayarları WPGraphQL'e Kaydet
+add_action('graphql_register_types', function() {
+    $fields = array(
+        'tesisatPhone' => 'tesisat_phone',
+        'tesisatEmail' => 'tesisat_email',
+        'tesisatAddress' => 'tesisat_address',
+        'tesisatFacebook' => 'tesisat_facebook',
+        'tesisatInstagram' => 'tesisat_instagram',
+        'tesisatTwitter' => 'tesisat_twitter'
+    );
+
+    foreach ($fields as $gql_name => $option_name) {
+        register_graphql_field('GeneralSettings', $gql_name, [
+            'type' => 'String',
+            'description' => $option_name . ' ayarı',
+            'resolve' => function() use ($option_name) {
+                return get_theme_mod($option_name);
+            }
+        ]);
+    }
+});

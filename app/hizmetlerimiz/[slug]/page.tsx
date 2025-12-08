@@ -10,7 +10,7 @@ import { useData } from '@/app/context/DataContext';
 export default function ServiceDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const { services } = useData();
-  const service = services.find((s) => s.id === slug);
+  const service = services.find((s) => s.slug === slug);
 
   // Update SEO metadata
   useEffect(() => {
@@ -74,11 +74,11 @@ export default function ServiceDetail({ params }: { params: Promise<{ slug: stri
               {services.map((s) => (
                 <Link 
                   key={s.id} 
-                  href={`/hizmetlerimiz/${s.id}`}
-                  className={`block p-3 rounded-lg transition-all text-sm font-medium flex justify-between items-center ${s.id === slug ? 'bg-blue-900 text-white shadow-md' : 'hover:bg-slate-50 text-slate-600 hover:text-blue-900 hover:translate-x-1'}`}
+                  href={`/hizmetlerimiz/${s.slug}`}
+                  className={`block p-3 rounded-lg transition-all text-sm font-medium flex justify-between items-center ${s.slug === slug ? 'bg-blue-900 text-white shadow-md' : 'hover:bg-slate-50 text-slate-600 hover:text-blue-900 hover:translate-x-1'}`}
                 >
                   {s.title}
-                  {s.id === slug && <ArrowRight className="w-4 h-4" />}
+                  {s.slug === slug && <ArrowRight className="w-4 h-4" />}
                 </Link>
               ))}
             </nav>

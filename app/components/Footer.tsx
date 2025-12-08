@@ -54,7 +54,7 @@ export default function Footer() {
             <ul className="space-y-3 text-blue-200">
               {services.slice(0, 5).map((service) => (
                 <li key={service.id}>
-                  <Link href={`/hizmetlerimiz/${service.id}`} className="hover:text-yellow-400 cursor-pointer flex items-center gap-2 text-sm">
+                  <Link href={`/hizmetlerimiz/${service.slug}`} className="hover:text-yellow-400 cursor-pointer flex items-center gap-2 text-sm">
                      <ArrowRight className="w-3 h-3 text-yellow-500" />
                      {service.title}
                   </Link>

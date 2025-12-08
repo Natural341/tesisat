@@ -1,11 +1,17 @@
 'use client';
 
-import { MapPin, Mail, Facebook, Instagram, Twitter, Phone, Menu, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Mail, Facebook, Instagram, Twitter, Phone, Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/app/context/DataContext';
 
 export default function Header() {
   const { siteConfig } = useData();
+  const [isOpen, setIsOpen] = useState(false);
+  const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
+
+  const toggleMenu = () => setIsOpen(!isOpen);
+  const toggleSubMenu = (id: string) => setOpenSubMenu(openSubMenu === id ? null : id);
 
   return (
     <header className="bg-blue-900 text-white sticky top-0 z-50 shadow-xl border-b border-blue-800">
@@ -31,7 +37,7 @@ export default function Header() {
         <div className="flex justify-between items-center">
           
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 cursor-pointer group">
+          <Link href="/" className="flex items-center gap-2 cursor-pointer group z-50">
              <div className="bg-yellow-400 p-2 rounded-lg group-hover:scale-105 transition-transform">
                <Phone className="w-6 h-6 text-blue-900" />
              </div>
@@ -66,12 +72,63 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Right Side Button & Mobile Menu */}
+          {/* Right Side Button & Mobile Menu Toggle */}
           <div className="flex items-center gap-4">
             <a href={`tel:${siteConfig.phone}`} className="bg-yellow-400 text-blue-900 px-6 py-2.5 rounded-full font-bold text-sm hover:bg-white hover:scale-105 transition-all shadow-lg hidden md:block">
               Teklif Al
             </a>
-            <Menu className="w-6 h-6 md:hidden cursor-pointer" />
+            <button onClick={toggleMenu} className="md:hidden text-white hover:text-yellow-400 transition-colors z-50">
+              {isOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      <div className={`fixed inset-0 bg-blue-950/95 z-40 backdrop-blur-sm transition-transform duration-300 md:hidden ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex flex-col h-full pt-28 px-8 pb-10 overflow-y-auto">
+          <nav className="flex flex-col gap-6 text-lg font-bold">
+            {siteConfig.menu?.map((item) => (
+              <div key={item.id} className="border-b border-blue-900/50 pb-4 last:border-0">
+                {item.children && item.children.length > 0 ? (
+                  <div>
+                    <button onClick={() => toggleSubMenu(item.id)} className="flex items-center justify-between w-full text-white hover:text-yellow-400">
+                      {item.title}
+                      <ChevronRight className={`w-5 h-5 transition-transform ${openSubMenu === item.id ? 'rotate-90' : ''}`} />
+                    </button>
+                    {openSubMenu === item.id && (
+                      <div className="mt-4 flex flex-col gap-3 pl-4 border-l-2 border-yellow-400 ml-1">
+                        {item.children.map((subItem) => (
+                          <Link 
+                            key={subItem.id} 
+                            href={subItem.url} 
+                            className="text-blue-200 hover:text-white text-base font-medium"
+                            onClick={toggleMenu}
+                          >
+                            {subItem.title}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link href={item.url} className="block text-white hover:text-yellow-400" onClick={toggleMenu}>
+                    {item.title}
+                  </Link>
+                )}
+              </div>
+            ))}
+          </nav>
+          
+          <div className="mt-auto pt-8 space-y-4">
+            <a href={`tel:${siteConfig.phone}`} className="block bg-yellow-400 text-blue-900 text-center py-4 rounded-xl font-bold hover:bg-white transition-colors">
+              Hemen Ara: {siteConfig.phone}
+            </a>
+            <div className="flex justify-center gap-6 text-blue-300">
+               <a href={siteConfig.social.facebook}><Facebook className="w-6 h-6"/></a>
+               <a href={siteConfig.social.instagram}><Instagram className="w-6 h-6"/></a>
+               <a href={siteConfig.social.twitter}><Twitter className="w-6 h-6"/></a>
+            </div>
           </div>
         </div>
       </div>

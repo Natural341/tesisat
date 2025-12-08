@@ -70,7 +70,7 @@ export default function Services() {
                       {service.shortDesc}
                     </p>
                     
-                    <Link href={`/hizmetlerimiz/${service.id}`} className="flex items-center gap-2 text-blue-900 font-bold hover:text-yellow-500 transition-colors mt-auto">
+                    <Link href={`/hizmetlerimiz/${service.slug}`} className="flex items-center gap-2 text-blue-900 font-bold hover:text-yellow-500 transition-colors mt-auto">
                       Detaylı İncele <ArrowRight className="w-4 h-4" />
                     </Link>
                   </div>

@@ -1,6 +1,7 @@
 export const initialServices = [
   {
     id: "teknik-temizleme",
+    slug: "teknik-temizleme",
     title: "Teknik Temizleme",
     category: "Temizlik Hizmetleri",
     iconName: "Wrench",
@@ -12,6 +13,7 @@ export const initialServices = [
   },
   {
     id: "tuvalet-tikanikligi",
+    slug: "tuvalet-tikanikligi",
     title: "Tuvalet Tıkanıklığı Açma",
     category: "Tıkanıklık Açma",
     iconName: "Trash2",
@@ -23,6 +25,7 @@ export const initialServices = [
   },
   {
     id: "kanalizasyon-tikanikligi",
+    slug: "kanalizasyon-tikanikligi",
     title: "Kanalizasyon Tıkanıklığı Açma",
     category: "Altyapı Hizmetleri",
     iconName: "HardHat",
@@ -34,6 +37,7 @@ export const initialServices = [
   },
   {
     id: "logar-tikanikligi",
+    slug: "logar-tikanikligi",
     title: "Logar Tıkanıklığı Açma",
     category: "Altyapı Hizmetleri",
     iconName: "Search",
@@ -45,6 +49,7 @@ export const initialServices = [
   },
   {
     id: "lavabo-tikanikligi",
+    slug: "lavabo-tikanikligi",
     title: "Lavabo Tıkanıklığı Açma",
     category: "Tıkanıklık Açma",
     iconName: "Droplets",
@@ -56,6 +61,7 @@ export const initialServices = [
   },
   {
     id: "mutfak-tikanikligi",
+    slug: "mutfak-tikanikligi",
     title: "Mutfak Tıkanıklığı Açma",
     category: "Tıkanıklık Açma",
     iconName: "Settings",
@@ -70,6 +76,7 @@ export const initialServices = [
 export const initialBlogPosts = [
   {
     id: "su-tesisatinda-hatalar",
+    slug: "su-tesisatinda-hatalar",
     title: "Su Tesisatında Sık Yapılan Hatalar",
     excerpt: "Ev sahiplerinin tesisat konusunda en sık yaptığı hataları ve çözüm yollarını derledik. Küçük ihmaller büyük sorunlara yol açabilir.",
     content: `
@@ -87,6 +94,7 @@ export const initialBlogPosts = [
   },
   {
     id: "kirmadan-su-kacagi",
+    slug: "kirmadan-su-kacagi",
     title: "Kırmadan Su Kaçağı Tespiti Nasıl Yapılır?",
     excerpt: "Teknolojik cihazlar sayesinde fayanslarınızı kırmadan su kaçağını noktasal olarak nasıl tespit ediyoruz?",
     content: "<p>Eskiden su kaçağını bulmak için tüm banyo kırılırdı. Şimdi termal kameralar ve akustik dinleme cihazları ile nokta atışı yapıyoruz.</p>",
@@ -100,6 +108,7 @@ export const initialBlogPosts = [
   },
   {
     id: "petek-temizligi-onemi",
+    slug: "petek-temizligi-onemi",
     title: "Petek Temizliği Neden Önemlidir?",
     excerpt: "Kış aylarında ısınma sorunu yaşamamak ve faturalarınızı düşürmek için petek temizliğinin önemi.",
     content: "<p>Peteklerin altı ısınmıyorsa tortu birikmiş demektir. Makine ile yapılan temizlik %30 yakıt tasarrufu sağlar.</p>",
@@ -224,7 +233,7 @@ export const initialSiteConfig = {
   brandSuffix: "Eskişehir",
   footerText: "Modern ekipmanlar ve uzman kadromuzla Eskişehir'in her noktasına hızlı ve güvenilir tesisat çözümleri sunuyoruz.",
   address: "İstiklal Mah. Şair Fuzuli Cad. No:123 Odunpazarı / Eskişehir",
-  phone: "+90 555 123 45 67",
+  phone: "+90 539 661 36 26",
   email: "iletisim@tikaniklikacma.com",
   social: {
     facebook: "#",

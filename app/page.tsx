@@ -16,7 +16,7 @@ export default function Home() {
       <Header />
       <Hero />
       
-      {/* About Section */}
+      {/* About Section - Local Data Context (Initial Data or WP Settings) */}
       <section id="about" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="relative h-[500px] bg-slate-200 rounded-3xl overflow-hidden group shadow-2xl">
@@ -57,7 +57,6 @@ export default function Home() {
         <Services />
       </div>
 
-      {/* Blog Section - Content managed via Admin and displayed in PopularBlogs or separate page */}
       <div id="blog"></div>
       
       <div id="contact">

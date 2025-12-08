@@ -34,7 +34,7 @@ export default function PopularBlogs() {
 
          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {displayPosts.map((post) => (
-              <Link href={`/blog/${post.id}`} key={post.id} className="group block bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1">
+              <Link href={`/blog/${post.slug}`} key={post.id} className="group block bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1">
                 <div className="h-48 relative overflow-hidden">
                   <img 
                     src={post.image} 
