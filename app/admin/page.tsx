@@ -41,8 +41,11 @@ const isContentItem = (item: EditableItem): item is ContentItem => {
 };
 
 // Yeni isIdentifiable type guard'ı
-const isIdentifiable = (x: any): x is { id: string; slug?: string } =>
-  !!x && typeof x.id === 'string' && x.id.length > 0;
+const isIdentifiable = (x: unknown): x is { id: string; slug?: string } => {
+  if (typeof x !== 'object' || x === null) return false;
+  const item = x as Record<string, unknown>;
+  return typeof item.id === 'string' && item.id.length > 0;
+};
 
 // Helper to convert plain text to simple HTML
 const convertToHtml = (plainText: string): string => {
